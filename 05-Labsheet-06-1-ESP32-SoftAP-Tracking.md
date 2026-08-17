@@ -81,16 +81,39 @@ classDiagram
 
 | อุปกรณ์ที่ใช้ทดสอบ (เช่น iPhone/Android) | MAC Address ที่ดักจับได้ | Association ID (AID) | หมายเลข IP Address ที่ได้ (ถ้าทราบ) |
 | :--- | :--- | :---: | :---: |
-| **อุปกรณ์ที่ 1** | | | |
-| **อุปกรณ์ที่ 2** | | | |
+| **อุปกรณ์ที่ 1** | A8:41:F4:AF:E4:E4 | 1 | 192.168.4.2 |
+| **อุปกรณ์ที่ 2** | 62:C9:04:DA:17:82 | 1 | 192.168.4.3 |
+
+<img width="847" height="310" alt="image" src="https://github.com/user-attachments/assets/b9fc2782-213a-4485-a6ce-d804f65c8e4b" />
+<img width="805" height="252" alt="image" src="https://github.com/user-attachments/assets/ef7040d4-112c-463f-ad05-45beb2a14f95" />
 
 ---
 
 ## 7. คำถามท้ายการทดลอง (Post-Lab Questions)
 
 1. เหตุใด IP Address เริ่มต้นของ ESP32 SoftAP จึงเป็น `192.168.4.1` และ DHCP Server บน ESP32 เริ่มแจกจ่าย IP ที่หมายเลขใด?
-2. สมาชิกตัวแปร `mac` ในโครงสร้าง `wifi_event_ap_staconnected_t` สามารถนำไปประยุกต์ใช้ทำระบบความปลอดภัยขั้นสูง (เช่น MAC Filtering) ได้อย่างไร?
-3. หากมี Client พยายามเชื่อมต่อเป็นเครื่องที่ 5 (เกินค่า `max_connection = 4`) จะเกิดเหตุการณ์ใดขึ้นในระดับสัญญาณวิทยุ?
+
+   เลี่ยงชนกับ Subnet ของ Router ทั่วไป: บ้านหรือออฟฟิศส่วนใหญ่มักใช้ช่วง IP 192.168.0.x, 192.168.1.x หรือ 192.168.2.x การเลือกใช้ Subnet 192.168.4.x ช่วยลดโอกาสที่ IP จะชนกัน (IP Collision) เมื่อ ESP32 ทำงานในโหมดผสม (AP + STA Mode) หรือเมื่อสมาร์ทโฟน/คอมพิวเตอร์เชื่อมต่อกับทั้ง Wi-Fi บ้านและ ESP32 พร้อมกัน
+   
+3. สมาชิกตัวแปร `mac` ในโครงสร้าง `wifi_event_ap_staconnected_t` สามารถนำไปประยุกต์ใช้ทำระบบความปลอดภัยขั้นสูง (เช่น MAC Filtering) ได้อย่างไร?
+
+การทำ MAC Filtering (Whitelist / Blacklist)
+เมื่ออุปกรณ์ใหม่เชื่อมต่อเข้ามา ระบบ Event Handler จะดักจับค่า MAC Address และตรวจสอบกับรายการที่บันทึกไว้ หากไม่ได้รับอนุญาต ESP32 จะสั่งตัดการเชื่อมต่อทันทีด้วย esp_wifi_deauth_sta(event->aid)
+
+Whitelist (อนุญาตเฉพาะอุปกรณ์ที่ระบุ): ตรวจสอบว่า mac ตรงกับรายชื่อที่ลงทะเบียนไว้ใน NVS/RAM หรือไม่ หาก ไม่อยู่ ใน Whitelist ให้เตะออกจากระบบ
+
+Blacklist (บล็อกอุปกรณ์ที่ต้องสงสัย): หาก mac ตรงกับรายชื่อใน Blacklist ให้เตะออกจากระบบทันที
+
+
+4. หากมี Client พยายามเชื่อมต่อเป็นเครื่องที่ 5 (เกินค่า `max_connection = 4`) จะเกิดเหตุการณ์ใดขึ้นในระดับสัญญาณวิทยุ?
+
+ฝั่ง Client: เมื่อได้รับ Status Code ปฏิเสธ จะไม่ได้รับหมายเลข AID (Association Identifier) ทำให้กระบวนการตกลงเชื่อมต่อระดับ Link Layer ล้มเหลวทันที
+
+กระบวนการที่ถูกข้ามไป: ระบบจะไม่เข้าสู่ขั้นตอนการทำ 4-Way Handshake (การตรวจรหัสผ่าน WPA2/WPA3) และไม่เกิดการขอ IP Address จาก DHCP Server
+
+อาการบนจอ Client: หน้าจอจะขึ้นข้อความ เช่น "Failed to connect to network", "Unable to join network" หรือติดหล่มอยู่ที่สถานะ "Connecting..." ก่อนตัดการเชื่อมต่อ
+
+ฝั่ง ESP32: จะไม่มีการส่งอีเวนต์ WIFI_EVENT_AP_STACONNECTED ขึ้นมายัง Application Layer เนื่องจากกระบวนการล้มเหลวก่อนที่อุปกรณ์จะได้รับอนุญาตเข้าเครือข่าย
 
 
 ---

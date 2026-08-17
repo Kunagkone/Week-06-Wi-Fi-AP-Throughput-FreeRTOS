@@ -236,4 +236,8 @@ void app_main(void)
     ESP_ERROR_CHECK(esp_wifi_start());
 
     xTaskCreate(benchmark_task, "benchmark_task", 4096, NULL, 5, NULL);
+<<<<<<< HEAD
 }
+=======
+}
+>>>>>>> 92f8e9c0b3677b779a87d98bf8c77b11ed3a12c7
